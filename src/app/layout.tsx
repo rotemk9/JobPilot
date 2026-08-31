@@ -4,6 +4,14 @@ import { Providers } from "@/components/providers";
 import { getBaseUrl } from "@/lib/utils";
 import "./globals.css";
 
+function safeMetadataBase(): URL | undefined {
+  try {
+    return new URL(getBaseUrl());
+  } catch {
+    return undefined;
+  }
+}
+
 const sans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
@@ -22,7 +30,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(getBaseUrl()),
+  metadataBase: safeMetadataBase(),
   title: {
     default: "JobPilot — Find jobs. Ace the interview.",
     template: "%s · JobPilot",
