@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens. Light theme lives on :root; dark theme (the primary,
+ * first-class experience) lives on .dark. All values are HSL channels so
+ * Tailwind can apply opacity modifiers (e.g. bg-accent/20).
+ */
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* Light theme — crisp, cool near-white */
+    --background: 220 33% 98%;
+    --foreground: 222 47% 11%;
+
+    --surface: 0 0% 100%;
+    --surface-muted: 220 24% 96%;
+    --surface-strong: 220 20% 92%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 222 47% 13%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Electric indigo/violet accent */
+    --accent: 250 84% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --muted: 220 20% 94%;
+    --muted-foreground: 220 12% 42%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 62% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 40% 12%;
+
+    --border: 220 18% 88%;
+    --input: 220 18% 86%;
+    --ring: 250 84% 60%;
+  }
+
+  .dark {
+    /* Deep slate — cool, near-black surfaces */
+    --background: 224 41% 5%;
+    --foreground: 214 32% 91%;
+
+    --surface: 223 34% 8%;
+    --surface-muted: 223 30% 11%;
+    --surface-strong: 223 26% 15%;
+
+    --card: 223 34% 8%;
+    --card-foreground: 214 32% 91%;
+
+    --popover: 223 36% 7%;
+    --popover-foreground: 214 32% 91%;
+
+    --primary: 214 32% 91%;
+    --primary-foreground: 224 41% 6%;
+
+    /* Slightly brighter accent so it pops on dark slate */
+    --accent: 252 95% 68%;
+    --accent-foreground: 250 60% 8%;
+
+    --muted: 223 28% 14%;
+    --muted-foreground: 217 16% 62%;
+
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 58% 48%;
+    --success-foreground: 152 60% 8%;
+
+    --warning: 38 92% 58%;
+    --warning-foreground: 38 60% 10%;
+
+    --border: 223 22% 18%;
+    --input: 223 22% 20%;
+    --ring: 252 95% 68%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+  /* Custom, on-brand scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+    background-clip: content-box;
+  }
+  ::selection {
+    background: hsl(var(--accent) / 0.3);
+  }
+}
+
+@layer components {
+  /* Reusable gradient text for hero + key headings */
+  .text-gradient {
+    @apply bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent;
+  }
+  .text-gradient-accent {
+    background-image: linear-gradient(
+      120deg,
+      hsl(var(--accent)),
+      hsl(280 90% 72%)
+    );
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Thin hairline separators that read well on slate */
+  .hairline {
+    @apply border-border/60;
+  }
+
+  /* Frosted panel used for nav + sticky bars */
+  .glass {
+    @apply bg-background/70 backdrop-blur-xl backdrop-saturate-150;
+  }
+
+  /* Loading skeleton shimmer */
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-surface-muted;
+  }
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-foreground/5 to-transparent;
+  }
+
+  /* Prose styling for AI-generated markdown reports (mobile-first) */
+  .prep-prose {
+    @apply text-[15px] leading-relaxed text-foreground/90;
+  }
+  .prep-prose h1,
+  .prep-prose h2,
+  .prep-prose h3 {
+    @apply font-display font-semibold tracking-tight text-foreground;
+  }
+  .prep-prose h1 {
+    @apply mb-3 mt-6 text-xl sm:text-2xl;
+  }
+  .prep-prose h2 {
+    @apply mb-2 mt-6 text-lg sm:text-xl;
+  }
+  .prep-prose h3 {
+    @apply mb-2 mt-5 text-base font-semibold sm:text-lg;
+  }
+  .prep-prose p {
+    @apply my-3;
+  }
+  .prep-prose ul {
+    @apply my-3 space-y-1.5 pl-1;
+  }
+  .prep-prose ol {
+    @apply my-3 list-decimal space-y-1.5 pl-5;
+  }
+  .prep-prose ul > li {
+    @apply relative pl-5;
+  }
+  .prep-prose ul > li::before {
+    content: "";
+    @apply absolute left-0 top-2.5 h-1.5 w-1.5 rounded-full bg-accent;
+  }
+  .prep-prose strong {
+    @apply font-semibold text-foreground;
+  }
+  .prep-prose code {
+    @apply rounded bg-surface-muted px-1.5 py-0.5 font-mono text-[0.85em] text-accent;
+  }
+  .prep-prose pre {
+    @apply my-4 overflow-x-auto rounded-lg border border-border bg-surface-muted p-4 text-sm;
+  }
+  .prep-prose pre code {
+    @apply bg-transparent p-0 text-foreground/90;
+  }
+  .prep-prose blockquote {
+    @apply my-4 border-l-2 border-accent/60 pl-4 italic text-muted-foreground;
+  }
+  .prep-prose a {
+    @apply font-medium text-accent underline underline-offset-4;
+  }
+  .prep-prose hr {
+    @apply my-6 border-border/60;
+  }
+}

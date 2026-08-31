@@ -1,0 +1,190 @@
+// JobPilot Prisma schema
+// Datasource: Supabase Postgres.
+//  - DATABASE_URL      -> pooled connection (PgBouncer, port 6543) used at runtime
+//  - DIRECT_URL        -> direct connection (port 5432) used for migrations
+// This split is the recommended setup for serverless (Vercel) + Supabase.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ----------------------------------------------------------------------------
+// NextAuth models (Prisma adapter)
+// ----------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Profile
+  headline      String?
+  location      String?
+  resumeText    String?   @db.Text // parsed plaintext of the uploaded resume
+  resumeName    String?
+
+  accounts    Account[]
+  sessions    Session[]
+  savedJobs   SavedJob[]
+  prepReports PrepReport[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ----------------------------------------------------------------------------
+// Domain models
+// ----------------------------------------------------------------------------
+
+enum PrepStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+}
+
+enum PrepReportStatus {
+  PENDING
+  READY
+  FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+/// A job the user has bookmarked. Job data is denormalized/snapshotted here so
+/// the saved job survives even if the upstream listing disappears.
+model SavedJob {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Snapshot of the listing at save time
+  source      String // "adzuna" | "mock" | "manual"
+  sourceId    String // provider's unique id for the listing
+  title       String
+  company     String
+  location    String?
+  remote      Boolean    @default(false)
+  url         String?
+  description String     @db.Text
+  salaryMin   Int?
+  salaryMax   Int?
+  currency    String?    @default("USD")
+  seniority   String?
+  tags        String[]   @default([])
+  postedAt    DateTime?
+
+  status      PrepStatus @default(NOT_STARTED)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  prepReports PrepReport[]
+
+  @@unique([userId, source, sourceId])
+  @@index([userId])
+  @@index([userId, status])
+}
+
+/// An AI-generated interview/assessment prep report, optionally tied to a saved job.
+model PrepReport {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  savedJobId    String?
+  savedJob      SavedJob?        @relation(fields: [savedJobId], references: [id], onDelete: SetNull)
+
+  // Inputs used to generate the report (snapshotted so it can be regenerated/audited)
+  company       String
+  role          String
+  jobDescription String?         @db.Text
+  publicNotes   String?          @db.Text // any public info the user pasted (Glassdoor/Blind quotes, etc.)
+
+  // Outputs
+  status        PrepReportStatus @default(PENDING)
+  markdown      String?          @db.Text // full rendered report
+  summary       String?          @db.Text // short overview
+  assessmentType String?         // e.g. "System Design", "Coding", "Case Study", "Behavioral"
+  topics        String[]         @default([])
+  sampleQuestions String[]       @default([])
+  error         String?
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  messages      InterviewMessage[]
+
+  @@index([userId])
+  @@index([savedJobId])
+}
+
+/// A single turn in a mock-interview conversation attached to a prep report.
+model InterviewMessage {
+  id           String      @id @default(cuid())
+  prepReportId String
+  prepReport   PrepReport  @relation(fields: [prepReportId], references: [id], onDelete: Cascade)
+
+  role         MessageRole
+  content      String      @db.Text
+  createdAt    DateTime    @default(now())
+
+  @@index([prepReportId])
+}
+
+/// Server-side cache for external job-search API responses (freshness + cost control).
+model JobSearchCache {
+  id        String   @id @default(cuid())
+  key       String   @unique // hash of the normalized query
+  payload   Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
