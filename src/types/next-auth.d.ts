@@ -8,9 +8,15 @@ declare module "next-auth" {
       hasResume?: boolean;
     } & DefaultSession["user"];
   }
-
   interface User {
     headline?: string | null;
     resumeText?: string | null;
+    password?: string | null;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    uid?: string;
   }
 }

@@ -32,6 +32,7 @@ model User {
   location      String?
   resumeText    String?   @db.Text // parsed plaintext of the uploaded resume
   resumeName    String?
+  password      String?
 
   accounts    Account[]
   sessions    Session[]
